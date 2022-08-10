@@ -24,6 +24,21 @@ def data():
     return rng.normal(0., 1., (2, 11, 13))
 
 @pytest.fixture
+async def model_spec():
+    """
+    Default test model definition
+    """
+    return dict(model='linear')
+
+@pytest.fixture
+def fitted(data, model_spec):
+    """
+    Trained linear model (remote)
+    """
+    train, _ = data
+    return models.fit(model_spec, train)
+
+@pytest.fixture
 async def client():
     """
     Galp client connected to a forked worker
@@ -33,6 +48,7 @@ async def client():
         }
     async with galp.local_system(**config) as client:
         yield client
+
 
 def test_fit_creates_task(data):
     """
@@ -46,28 +62,26 @@ def test_fit_creates_task(data):
 
     assert isinstance(fitted, galp.graph.Task)
 
-async def test_run_fit(data, client):
+async def test_run_fit(data, model_spec, client):
     """
     Actually runs a linear fit through gemz
     """
     train, test = data
-    model_def = {'model': 'linear'}
     fitted = await client.run(
-        models.fit(model_def, train)
+        models.fit(model_spec, train)
         )
 
-    preds = gemz.models.predict_loo(model_def, fitted, test)
+    preds = gemz.models.predict_loo(model_spec, fitted, test)
 
     assert preds.shape == test.shape
 
-async def test_run_predict(data, client):
+async def test_run_predict(data, fitted, client):
     """
     Fit remotely and predict remotely too by passing model by reference
     """
-    train, test = data
+    _, test = data
     mdef = dict(model='linear')
 
-    fitted = models.fit(mdef, train)
     preds = models.predict_loo(
             mdef, fitted, test
             )
@@ -75,3 +89,30 @@ async def test_run_predict(data, client):
     _preds = await client.run(preds)
 
     assert _preds.shape == test.shape
+
+async def test_run_eval(data, model_spec, fitted, client):
+    """
+    Fit remotely and predict remotely too by passing model by reference
+    """
+    _, test = data
+
+    rss = await client.run(models.eval_loss(model_spec, fitted, test, 'RSS'))
+
+    assert isinstance(rss, float)
+
+async def test_fit_eval(data, model_spec, client):
+    """
+    Compound fit-and-eval meta-step
+    """
+    train, test = data
+
+    fitted, rss = models.fit_eval(model_spec, train, test, 'RSS')
+
+    _rss = await client.run(rss)
+    assert isinstance(_rss, float)
+
+    _fitted = await client.run(fitted)
+
+    _rss_2, _fitted_2 = await client.run(rss, fitted)
+
+    assert _rss == _rss_2
