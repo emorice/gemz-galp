@@ -10,3 +10,4 @@ export = StepSet()
 
 
 fit = export.step(gemz.models.fit)
+predict_loo = export.step(gemz.models.predict_loo)

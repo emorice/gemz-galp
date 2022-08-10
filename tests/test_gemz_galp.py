@@ -59,3 +59,19 @@ async def test_run_fit(data, client):
     preds = gemz.models.predict_loo(model_def, fitted, test)
 
     assert preds.shape == test.shape
+
+async def test_run_predict(data, client):
+    """
+    Fit remotely and predict remotely too by passing model by reference
+    """
+    train, test = data
+    mdef = dict(model='linear')
+
+    fitted = models.fit(mdef, train)
+    preds = models.predict_loo(
+            mdef, fitted, test
+            )
+
+    _preds = await client.run(preds)
+
+    assert _preds.shape == test.shape
