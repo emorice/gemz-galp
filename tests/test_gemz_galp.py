@@ -15,13 +15,22 @@ from gemz_galp import models
 # pylint: disable=redefined-outer-name
 
 @pytest.fixture
-def data():
+def unsplit_data():
     """
     Random iid gaussian data
+
+    24 (13 + 11) x 17
     """
     rng = np.random.default_rng(0)
 
-    return rng.normal(0., 1., (2, 11, 13))
+    return rng.normal(0., 1., (13 + 11, 17))
+
+@pytest.fixture
+def data(unsplit_data):
+    """
+    Split into 13 x 17 train and 11 x 17 test
+    """
+    return unsplit_data[:13], unsplit_data[13:]
 
 @pytest.fixture
 async def model_spec():
@@ -116,3 +125,13 @@ async def test_fit_eval(data, model_spec, client):
     _rss_2, _fitted_2 = await client.run(rss, fitted)
 
     assert _rss == _rss_2
+
+async def test_cv_fit_eval(unsplit_data, model_spec, client):
+    """
+    Distributed CV-based eval
+    """
+    cv_rss = await client.run(
+        models.cv_fit_eval(model_spec, unsplit_data, 3, 'RSS')
+        )
+
+    assert isinstance(cv_rss, float)
