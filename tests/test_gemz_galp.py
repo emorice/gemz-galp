@@ -30,22 +30,24 @@ def data(unsplit_data):
     """
     Split into 13 x 17 train and 11 x 17 test
     """
-    return unsplit_data[:13], unsplit_data[13:]
+    return {
+        'train': unsplit_data[:13],
+        'test': unsplit_data[13:]
+        }
 
 @pytest.fixture
 async def model_spec():
     """
     Default test model definition
     """
-    return dict(model='linear')
+    return {'model': 'linear'}
 
 @pytest.fixture
 def fitted(data, model_spec):
     """
     Trained linear model (remote)
     """
-    train, _ = data
-    return models.fit(model_spec, train)
+    return models.fit(model_spec, data['train'])
 
 @pytest.fixture
 async def client():
@@ -59,15 +61,13 @@ async def client():
         yield client
 
 
-def test_fit_creates_task(data):
+def test_fit_creates_task(data, model_spec):
     """
     Tests that the fit function creates a galp task instead of returning a
     fitted model.
     """
 
-    train, _ = data
-
-    fitted = models.fit({'model': 'linear'}, train)
+    fitted = models.fit(model_spec, data['train'])
 
     assert isinstance(fitted, galp.graph.Task)
 
@@ -75,37 +75,33 @@ async def test_run_fit(data, model_spec, client):
     """
     Actually runs a linear fit through gemz
     """
-    train, test = data
     fitted = await client.run(
-        models.fit(model_spec, train)
+        models.fit(model_spec, data['train'])
         )
 
-    preds = gemz.models.predict_loo(model_spec, fitted, test)
+    preds = gemz.models.predict_loo(model_spec, fitted, data['test'])
 
-    assert preds.shape == test.shape
+    assert preds.shape == data['test'].shape
 
 async def test_run_predict(data, fitted, client):
     """
     Fit remotely and predict remotely too by passing model by reference
     """
-    _, test = data
     mdef = dict(model='linear')
 
     preds = models.predict_loo(
-            mdef, fitted, test
+            mdef, fitted, data['test']
             )
 
     _preds = await client.run(preds)
 
-    assert _preds.shape == test.shape
+    assert _preds.shape == data['test'].shape
 
 async def test_run_eval(data, model_spec, fitted, client):
     """
     Fit remotely and predict remotely too by passing model by reference
     """
-    _, test = data
-
-    rss = await client.run(models.eval_loss(model_spec, fitted, test, 'RSS'))
+    rss = await client.run(models.eval_loss(model_spec, fitted, data['test'], 'RSS'))
 
     assert isinstance(rss, float)
 
@@ -113,25 +109,49 @@ async def test_fit_eval(data, model_spec, client):
     """
     Compound fit-and-eval meta-step
     """
-    train, test = data
+    res = models.fit_eval(model_spec, data, 'RSS')
 
-    fitted, rss = models.fit_eval(model_spec, train, test, 'RSS')
+    rss = await client.run(res['loss'])
+    assert isinstance(rss, float)
 
-    _rss = await client.run(rss)
-    assert isinstance(_rss, float)
+    _fitted = await client.run(res['fit'])
 
-    _fitted = await client.run(fitted)
+    rss_2, _fitted_2 = await client.run(res['loss'], res['fit'])
 
-    _rss_2, _fitted_2 = await client.run(rss, fitted)
-
-    assert _rss == _rss_2
+    assert rss == rss_2
 
 async def test_cv_fit_eval(unsplit_data, model_spec, client):
     """
     Distributed CV-based eval
     """
-    cv_rss = await client.run(
+    # Note: this fetches everything, including data, not what you want outside
+    # of tests !
+    cvr = await client.run(
         models.cv_fit_eval(model_spec, unsplit_data, 3, 'RSS')
         )
 
-    assert isinstance(cv_rss, float)
+    assert len(cvr['folds']) == 3
+    assert all(
+        isinstance(f['loss'], float)
+        for f in cvr['folds']
+        )
+    assert isinstance(cvr['loss'], float)
+
+async def test_cv_fit_eval_light(unsplit_data, model_spec, client):
+    """
+    Distributed CV-based eval, more realistic use
+    """
+    cvr_task = models.cv_fit_eval(model_spec, unsplit_data, 3, 'RSS')
+
+    # Run everything, but read only the final loss
+    total_loss = await client.run(cvr_task['loss'])
+    assert isinstance(total_loss, float)
+
+    # Later on, go back to fetch the per-fold losses
+    fold_losses = await client.run([
+        fold['loss'] for fold in cvr_task['folds']
+        ])
+    assert len(fold_losses) == 3
+    assert all(isinstance(l, float) for l in fold_losses)
+
+
