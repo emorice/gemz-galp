@@ -57,7 +57,7 @@ async def client():
     config = {
         'steps': [ 'gemz_galp.models' ]
         }
-    async with galp.local_system(**config) as client:
+    async with galp.temp_system(**config) as client:
         yield client
 
 
