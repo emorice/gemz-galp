@@ -17,7 +17,7 @@ export = StepSet()
 fit = export(ops.fit)
 predict_loo = export(ops.predict_loo)
 eval_loss = export(ops.eval_loss)
-fold = export(ops.fold, items=2) # -> (train, test)
+fold = export(ops.fold, items=3) # -> (train, test, mask)
 aggregate_losses = export(ops.aggregate_losses)
 
 # Meta steps:
