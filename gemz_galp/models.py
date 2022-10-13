@@ -19,8 +19,11 @@ predict_loo = export(ops.predict_loo)
 eval_loss = export(ops.eval_loss)
 fold = export(ops.fold, items=3) # -> (train, test, mask)
 aggregate_losses = export(ops.aggregate_losses)
+aggregate_residuals = export(ops.aggregate_residuals)
 build_eval_grid = export(ops.build_eval_grid)
 select_best = export(ops.select_best)
+
+_cv_residualize = export(ops.cv_residualize)
 
 # Meta steps:
 
@@ -29,3 +32,4 @@ _self = sys.modules[__name__]
 fit = partial(_fit, _ops=_self)
 fit_eval = partial(ops.fit_eval, _ops=_self)
 cv_fit_eval = partial(ops.cv_fit_eval, _ops=_self)
+cv_residualize = partial(_cv_residualize, _ops=_self)

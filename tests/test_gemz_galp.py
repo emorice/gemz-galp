@@ -169,7 +169,7 @@ async def test_cv_fit_eval_light(unsplit_data, model_spec, client):
 
 async def test_parallel_cv(unsplit_data, big_client, capsys):
     """
-    Calling fit on a cv model returns a graph with one task per point x fold.
+    Calling fit on a cv model generates a graph with one task per point x fold.
     """
 
     spec = {
@@ -188,3 +188,20 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
     # 1 cv.fit + 50 submodels + 1 final re-fit
     assert sum('DONE gemz.models.ops::fit' in line for line in
             errtxt.splitlines()) == 52
+
+async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
+    """
+    Calling cv_residualize generates a graph with one task per point x fold.
+    """
+
+    spec = {'model': 'linear'}
+
+    task = models.cv_residualize(spec, unsplit_data)
+
+    await big_client.run(task)
+
+    errtxt = capsys.readouterr().err
+
+    # 10 submodels
+    assert sum('DONE gemz.models.ops::fit' in line for line in
+            errtxt.splitlines()) == 10
