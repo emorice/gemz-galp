@@ -60,6 +60,18 @@ async def client():
     async with galp.temp_system(**config) as client:
         yield client
 
+@pytest.fixture
+async def big_client():
+    """
+    Galp client connected to many workers
+    """
+    config = {
+        'steps': [ 'gemz_galp.models' ],
+        'pool_size': 10,
+        }
+    async with galp.temp_system(**config) as client:
+        yield client
+
 
 def test_fit_creates_task(data, model_spec):
     """
@@ -155,3 +167,24 @@ async def test_cv_fit_eval_light(unsplit_data, model_spec, client):
     assert all(isinstance(l, float) for l in fold_losses)
 
 
+async def test_parallel_cv(unsplit_data, big_client, capsys):
+    """
+    Calling fit on a cv model returns a graph with one task per point x fold.
+    """
+
+    spec = {
+        'model': 'cv',
+        'inner': { 'model': 'svd' },
+        'fold_count': 10,
+        'grid': [1, 2, 3, 4, 5]
+        }
+
+    task = models.fit(spec, unsplit_data)
+
+    await big_client.run(task)
+
+    errtxt = capsys.readouterr().err
+
+    # 1 cv.fit + 50 submodels + 1 final re-fit
+    assert sum('DONE gemz.models.ops::fit' in line for line in
+            errtxt.splitlines()) == 52
