@@ -167,6 +167,17 @@ async def test_cv_fit_eval_light(unsplit_data, model_spec, client):
     assert all(isinstance(l, float) for l in fold_losses)
 
 
+def count_done(errtxt):
+    """
+    Try to parse logs to count the number of task ran
+
+    Clearly not a nice solution, waiting for better
+    """
+    return sum(
+            ('DONE' in line and'gemz.models.ops::fit' in line)
+            for line in errtxt.splitlines()
+            )
+
 async def test_parallel_cv(unsplit_data, big_client, capsys):
     """
     Calling fit on a cv model generates a graph with one task per point x fold.
@@ -186,8 +197,7 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
     errtxt = capsys.readouterr().err
 
     # 1 cv.fit + 50 submodels + 1 final re-fit
-    assert sum('DONE gemz.models.ops::fit' in line for line in
-            errtxt.splitlines()) == 52
+    assert count_done(errtxt) == 52
 
 async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
     """
@@ -203,5 +213,4 @@ async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
     errtxt = capsys.readouterr().err
 
     # 10 submodels
-    assert sum('DONE gemz.models.ops::fit' in line for line in
-            errtxt.splitlines()) == 10
+    assert count_done(errtxt) == 10
