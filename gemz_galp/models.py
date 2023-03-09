@@ -7,9 +7,9 @@ from functools import partial
 
 from gemz.models import ops
 
-from galp.graph import StepSet
+from galp.graph import Block
 
-export = StepSet()
+export = Block()
 
 # Steps. Wrapping could be automated, but would not be much easier to maintain
 # and would break many static analysis programs
