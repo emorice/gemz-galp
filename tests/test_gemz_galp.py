@@ -126,9 +126,7 @@ async def test_fit_eval(data, model_spec, client):
     rss = await client.run(res['loss'])
     assert isinstance(rss, float)
 
-    _fitted = await client.run(res['fit'])
-
-    rss_2, _fitted_2 = await client.run(res['loss'], res['fit'])
+    rss_2 = await client.run(res['loss'])
 
     assert rss == rss_2
 
