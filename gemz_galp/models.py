@@ -33,6 +33,7 @@ _self = sys.modules[__name__]
 def fit(*args, **kwargs):
     return _ops.fit(*args, **kwargs, _ops=_self)
 
+@export
 @wraps(_ops.fit_eval)
 def fit_eval(*args, **kwargs):
     return _ops.fit_eval(*args, **kwargs, _ops=_self)
