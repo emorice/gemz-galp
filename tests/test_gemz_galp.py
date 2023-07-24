@@ -197,6 +197,27 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
     # 1 cv.fit + 50 submodels + 1 final re-fit
     assert count_done(errtxt) == 52
 
+async def test_parallel_cv_fit_eval(data, big_client, capsys):
+    """
+    Calling fit_eval on a cv model generates a graph with one task per point x fold.
+    """
+
+    spec = {
+        'model': 'cv',
+        'inner': { 'model': 'svd' },
+        'fold_count': 10,
+        'grid': [1, 2, 3, 4, 5]
+        }
+
+    task = models.fit_eval(spec, data, 'RSS')
+
+    await big_client.run(task)
+
+    errtxt = capsys.readouterr().err
+
+    # 1 cv.fit + 50 submodels + 1 final re-fit
+    assert count_done(errtxt) == 52
+
 async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
     """
     Calling cv_residualize generates a graph with one task per point x fold.

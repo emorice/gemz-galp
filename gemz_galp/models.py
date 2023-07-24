@@ -16,6 +16,7 @@ export = Block()
 
 predict_loo = export(_ops.predict_loo)
 eval_loss = export(_ops.eval_loss)
+metric = export(_ops.metric)
 fold = export(_ops.fold, items=3) # -> (train, test, mask)
 aggregate_losses = export(_ops.aggregate_losses)
 aggregate_residuals = export(_ops.aggregate_residuals)
@@ -50,3 +51,9 @@ def cv_residualize(*args, **kwargs):
 @wraps(_ops.build_eval_grid)
 def build_eval_grid(*args, **kwargs):
     return _ops.build_eval_grid(*args, **kwargs, _ops=_self)
+
+class Model(_ops.Model):
+    """
+    Model subclass that makes the galp-aware ops module accessible to methods
+    """
+    ops = _self
