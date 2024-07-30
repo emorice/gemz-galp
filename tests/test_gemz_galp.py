@@ -50,23 +50,21 @@ def fitted(data, model_spec):
     return models.fit(model_spec, data['train'])
 
 @pytest.fixture
-async def client():
+async def client(tmp_path):
     """
     Galp client connected to a forked worker
     """
-    config = {
-        'steps': [ 'gemz_galp.models' ]
-        }
-    async with galp.temp_system(**config) as client:
+    config = {'store': tmp_path}
+    async with galp.local_system(**config) as client:
         yield client
 
 @pytest.fixture
-async def big_client():
+async def big_client(tmp_path):
     """
     Galp client connected to many workers
     """
     config = {
-        'steps': [ 'gemz_galp.models' ],
+        'store': tmp_path,
         'pool_size': 10,
         }
     async with galp.temp_system(**config) as client:
@@ -81,7 +79,7 @@ def test_fit_creates_task(data, model_spec):
 
     fitted = models.fit(model_spec, data['train'])
 
-    assert isinstance(fitted, galp.graph.Task)
+    assert isinstance(fitted, galp.graph.TaskNode)
 
 async def test_run_fit(data, model_spec, client):
     """
@@ -99,7 +97,7 @@ async def test_run_predict(data, fitted, client):
     """
     Fit remotely and predict remotely too by passing model by reference
     """
-    mdef = dict(model='linear')
+    mdef = {'model': 'linear'}
 
     preds = models.predict_loo(
             mdef, fitted, data['test']
