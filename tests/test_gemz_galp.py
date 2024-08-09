@@ -170,7 +170,7 @@ def count_done(errtxt):
     Clearly not a nice solution, waiting for better
     """
     return sum(
-            ('DONE' in line and'gemz.models.ops::fit' in line)
+            ('Done' in line and'gemz_galp.models::fit' in line)
             for line in errtxt.splitlines()
             )
 
@@ -188,9 +188,9 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
 
     task = models.fit(spec, unsplit_data)
 
-    await big_client.run(task)
+    await big_client.run(task, verbose=True)
 
-    errtxt = capsys.readouterr().err
+    errtxt = capsys.readouterr().out
 
     # 1 cv.fit + 50 submodels + 1 final re-fit
     assert count_done(errtxt) == 52
@@ -209,9 +209,9 @@ async def test_parallel_cv_fit_eval(data, big_client, capsys):
 
     task = models.fit_eval(spec, data, 'RSS')
 
-    await big_client.run(task)
+    await big_client.run(task, verbose=True)
 
-    errtxt = capsys.readouterr().err
+    errtxt = capsys.readouterr().out
 
     # 1 cv.fit + 50 submodels + 1 final re-fit
     assert count_done(errtxt) == 52
@@ -225,9 +225,9 @@ async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
 
     task = models.cv_residualize(spec, unsplit_data)
 
-    await big_client.run(task)
+    await big_client.run(task, verbose=True)
 
-    errtxt = capsys.readouterr().err
+    errtxt = capsys.readouterr().out
 
     # 10 submodels
     assert count_done(errtxt) == 10
