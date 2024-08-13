@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 
 import galp
-import galp.graph
+from galp.task_types import TaskNode
 
 import gemz
 from gemz_galp import models
@@ -79,7 +79,7 @@ def test_fit_creates_task(data, model_spec):
 
     fitted = models.fit(model_spec, data['train'])
 
-    assert isinstance(fitted, galp.graph.TaskNode)
+    assert isinstance(fitted, TaskNode)
 
 async def test_run_fit(data, model_spec, client):
     """
