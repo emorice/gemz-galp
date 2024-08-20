@@ -170,7 +170,7 @@ def count_done(errtxt):
     Clearly not a nice solution, waiting for better
     """
     return sum(
-            ('Done' in line and'gemz_galp.models::fit' in line)
+            ('OK' in line and'gemz_galp.models::fit' in line)
             for line in errtxt.splitlines()
             )
 
