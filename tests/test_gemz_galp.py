@@ -70,7 +70,6 @@ async def big_client(tmp_path):
     async with galp.temp_system(**config) as client:
         yield client
 
-
 def test_fit_creates_task(data, model_spec):
     """
     Tests that the fit function creates a galp task instead of returning a
@@ -162,7 +161,6 @@ async def test_cv_fit_eval_light(unsplit_data, model_spec, client):
     assert len(fold_losses) == 3
     assert all(isinstance(l, float) for l in fold_losses)
 
-
 def count_done(errtxt):
     """
     Try to parse logs to count the number of task ran
@@ -192,8 +190,8 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
 
     errtxt = capsys.readouterr().out
 
-    # 1 cv.fit + 50 submodels + 1 final re-fit
-    assert count_done(errtxt) == 52
+    # 1 cv.fit + 50 fits + 50 evals + 1 final re-fit
+    assert count_done(errtxt) == 102
 
 async def test_parallel_cv_fit_eval(data, big_client, capsys):
     """
@@ -213,8 +211,8 @@ async def test_parallel_cv_fit_eval(data, big_client, capsys):
 
     errtxt = capsys.readouterr().out
 
-    # 1 cv.fit + 50 submodels + 1 final re-fit
-    assert count_done(errtxt) == 52
+    # 1 cv.fit + 50 fits + 50 evals + 1 final re-fit + 1 final eval
+    assert count_done(errtxt) == 103
 
 async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
     """
