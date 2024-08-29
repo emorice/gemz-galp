@@ -186,7 +186,7 @@ async def test_parallel_cv(unsplit_data, big_client, capsys):
 
     task = models.fit(spec, unsplit_data)
 
-    await big_client.run(task, verbose=True)
+    await big_client.run(task, output='auto')
 
     errtxt = capsys.readouterr().out
 

@@ -6,7 +6,8 @@ import sys
 
 from gemz.models import ops as _ops
 
-from galp import step
+from galp import step, query
+import galp.task_types
 
 # pylint: disable=missing-function-docstring
 # @wraps sets the docstring but pylint does not seem to know that
@@ -42,10 +43,30 @@ def aggregate_residuals(*args, **kwargs):
 def select_best(*args, **kwargs):
     return _ops.select_best(*args, **kwargs)
 
+@step
+def s_extract_cv_losses(grid):
+    """
+    Wrap the extraction, guard against task refs
+    """
+    if isinstance(grid, galp.task_types.TaskRef):
+        return s_extract_cv_losses(query(grid, '$base'))
+    return _ops.s_extract_cv_losses(grid)
 
 # Meta steps:
 
 _self = sys.modules[__name__]
+
+def extract_cv(grid):
+    """
+    Gather only the cross-validation data necessary for decision and plotting
+
+    (The sum of all the cross validation models is commonly too large for memory)
+
+    Args:
+        t_grid: the grid task
+    """
+    # Give only the base grid as the full grid precisely is too large
+    return s_extract_cv_losses(query(grid, '$base'))
 
 @step
 def fit(*args, **kwargs):
