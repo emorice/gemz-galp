@@ -168,7 +168,7 @@ def count_done(errtxt):
     Clearly not a nice solution, waiting for better
     """
     return sum(
-            ('OK' in line and'gemz_galp.models::fit' in line)
+            ('[OK]' in line and'gemz_galp.models::fit' in line)
             for line in errtxt.splitlines()
             )
 
@@ -207,7 +207,7 @@ async def test_parallel_cv_fit_eval(data, big_client, capsys):
 
     task = models.fit_eval(spec, data, 'RSS')
 
-    await big_client.run(task, verbose=True)
+    await big_client.run(task, output='auto')
 
     errtxt = capsys.readouterr().out
 
@@ -223,7 +223,7 @@ async def test_parallel_cv_residualize(unsplit_data, big_client, capsys):
 
     task = models.cv_residualize(spec, unsplit_data)
 
-    await big_client.run(task, verbose=True)
+    await big_client.run(task, output='auto')
 
     errtxt = capsys.readouterr().out
 
